@@ -1,0 +1,50 @@
+name: Unzip and Build Mod Jar now
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  unzip-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Extract Mod ZIP File
+      run: |
+        unzip "Mikexxx lovely lilies.zip" -d extracted_mod/
+        if [ -d "extracted_mod/mod" ]; then
+          mv extracted_mod/mod/* .
+          mv extracted_mod/mod/.[!.]* . 2>/dev/null || true
+        elif [ $(ls -1 extracted_mod/ | wc -l) -eq 1 ] && [ -d extracted_mod/* ]; then
+          mv extracted_mod/*/* .
+          mv extracted_mod/*/.?[!.]* . 2>/dev/null || true
+        else
+          mv extracted_mod/* .
+          mv extracted_mod/.[!.]* . 2>/dev/null || true
+        fi
+        rm -rf extracted_mod/
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+
+    - name: Build Mod with Gradle
+      run: ./gradlew build
+
+    - name: Upload Finished Jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: Compiled-Mod-Jar
+        path: build/libs/*.jar
